@@ -15,7 +15,7 @@ export default function GoogleCallback() {
                 const userData = await authService.handleGoogleCallback();
                 if (userData) {
                     setUser(userData);
-                    router.push('/profile'); // Redirect to profile page after successful login
+                    router.replace('/'); // Redirect to home after successful login
                 } else {
                     router.push('/auth/login'); // Redirect to login if something went wrong
                 }

@@ -1,8 +1,24 @@
 import { NextResponse } from "next/server";
 
 export function middleware(request) {
-  const token = request.cookies.get("token")?.value;
   const currentPath = request.nextUrl.pathname;
+  
+  // Check for various auth tokens/sessions
+  const token = request.cookies.get("token")?.value;
+  const appwriteSession = request.cookies.get("a_session_console")?.value; // Appwrite session
+  const authSession = request.cookies.get("authjs.session-token")?.value; // NextAuth session
+  
+  // Consider user logged in if any auth method is present
+  const isLoggedIn = !!(token || appwriteSession || authSession);
+
+  console.log('Middleware Debug:', {
+    currentPath,
+    token: !!token,
+    appwriteSession: !!appwriteSession,
+    authSession: !!authSession,
+    isLoggedIn,
+    cookies: request.cookies.getAll().map(c => c.name)
+  });
 
   // Define protected routes and their redirect behaviors
   const protectedRoutes = {
@@ -17,14 +33,16 @@ export function middleware(request) {
   // Define auth routes that should redirect to home if already logged in
   const authRoutes = ["/auth/login", "/auth/signup"];
   
-  // Check if user is accessing an auth route while logged in
-  if (token && authRoutes.some(route => currentPath.startsWith(route))) {
+  // If user is logged in and trying to access auth pages, redirect to home
+  if (isLoggedIn && authRoutes.some(route => currentPath.startsWith(route))) {
+    console.log('Redirecting logged-in user from auth page to home');
     return NextResponse.redirect(new URL("/", request.url));
   }
 
   // Check if the current path needs protection
   for (const [protectedPath, redirectPath] of Object.entries(protectedRoutes)) {
-    if (currentPath.startsWith(protectedPath) && !token) {
+    if (currentPath.startsWith(protectedPath) && !isLoggedIn) {
+      console.log(`Protecting ${protectedPath}, redirecting to ${redirectPath}`);
       // Store the attempted URL to redirect back after login
       const redirectUrl = new URL(redirectPath, request.url);
       redirectUrl.searchParams.set("callbackUrl", currentPath);
@@ -32,11 +50,13 @@ export function middleware(request) {
     }
   }
 
-  // Special case for logout route - must have token
-  if (currentPath === "/logout" && !token) {
+  // Special case for logout route - must be logged in
+  if (currentPath === "/logout" && !isLoggedIn) {
+    console.log('Redirecting logout attempt without session to home');
     return NextResponse.redirect(new URL("/", request.url));
   }
 
+  console.log('Allowing access to:', currentPath);
   return NextResponse.next();
 }
 

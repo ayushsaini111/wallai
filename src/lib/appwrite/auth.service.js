@@ -37,6 +37,31 @@ class AuthService {
         }
     }
 
+    // Email/password login
+    async login({ email, password }) {
+        try {
+            return await account.createEmailPasswordSession(email, password);
+        } catch (error) {
+            console.error("AuthService :: login :: error", error);
+            throw error;
+        }
+    }
+
+    // Register new user (local signup)
+    async registerUser({ email, username, password }) {
+        try {
+            return await account.create(
+                'unique()', // unique user ID
+                email,
+                password,
+                username // name
+            );
+        } catch (error) {
+            console.error("AuthService :: registerUser :: error", error);
+            throw error;
+        }
+    }
+
     // Get current user
     async getCurrentUser() {
         try {
