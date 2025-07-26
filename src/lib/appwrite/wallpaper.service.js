@@ -145,6 +145,57 @@ class WallpaperService {
             throw error;
         }
     }
+
+    // Fetch all wallpapers (stub)
+    async getAllWallpapers() {
+        // TODO: Replace with Appwrite DB fetch
+        return [
+            {
+                id: '1',
+                imageUrl: '/sample1.jpg',
+                title: 'Sample 1',
+                uploaderId: 'user1',
+                uploaderName: 'Alice',
+                uploaderAvatar: '/avatar1.png',
+                likes: 12,
+                liked: false,
+                following: false,
+            },
+            {
+                id: '2',
+                imageUrl: '/sample2.jpg',
+                title: 'Sample 2',
+                uploaderId: 'user2',
+                uploaderName: 'Bob',
+                uploaderAvatar: '/avatar2.png',
+                likes: 8,
+                liked: true,
+                following: true,
+            },
+        ];
+    }
+
+    // Toggle like (stub)
+    async toggleLike(wallpaperId) {
+        // TODO: Integrate with Appwrite DB
+        return true;
+    }
+
+    // Toggle follow (stub)
+    async toggleFollow(uploaderId) {
+        // TODO: Integrate with Appwrite DB
+        return true;
+    }
+
+    // Download wallpaper (stub)
+    download(imageUrl, title) {
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.download = title || 'wallpaper';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
 }
 
 const wallpaperService = new WallpaperService();

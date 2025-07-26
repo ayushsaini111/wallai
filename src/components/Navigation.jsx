@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -13,6 +13,15 @@ const Navigation = () => {
     const { user, setUser } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setScrolled(window.scrollY > 20);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     const handleLogout = async () => {
         try {
@@ -27,87 +36,146 @@ const Navigation = () => {
     };
 
     return (
-        <nav className="bg-white shadow-md sticky top-0 z-50">
+        <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+            scrolled 
+                ? 'bg-white/90 backdrop-blur-xl shadow-lg border-b border-gray-200/50' 
+                : 'bg-transparent'
+        }`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-16">
+                <div className="flex justify-between items-center h-20">
                     {/* Logo */}
                     <div className="flex-shrink-0">
-                        <Link href="/" className="text-xl font-bold text-gray-900">
-                            WallpaperApp
+                        <Link href="/" className="group flex items-center space-x-3">
+                            <div className="relative">
+                                <div className="w-10 h-10 bg-gradient-to-br from-purple-600 via-pink-600 to-blue-600 rounded-xl rotate-3 group-hover:rotate-6 transition-transform duration-300"></div>
+                                <div className="absolute inset-0 w-10 h-10 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-xl -rotate-3 group-hover:-rotate-6 transition-transform duration-300"></div>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className="text-white font-bold text-lg">W</span>
+                                </div>
+                            </div>
+                            <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                                WallpaperHub
+                            </span>
                         </Link>
                     </div>
 
                     {/* Desktop Navigation */}
-                    <div className="hidden md:block">
-                        <div className="ml-10 flex items-baseline space-x-4">
-                            <Link href="/" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                                Home
+                    <div className="hidden md:flex items-center flex-1 max-w-2xl mx-8">
+                        <div className="flex items-center space-x-1 mr-6">
+                            <Link href="/" className="relative px-3 py-2 text-gray-700 hover:text-gray-900 font-medium transition-all duration-200 group flex items-center space-x-2">
+                                <span className="text-sm">🏠</span>
+                                <span className="relative z-10">Home</span>
+                                <div className="absolute inset-0 bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg opacity-0 group-hover:opacity-100 transform scale-95 group-hover:scale-100 transition-all duration-200"></div>
                             </Link>
-                            <Link href="/wallpapers" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                                Browse
-                            </Link>
-                            {user && (
-                                <>
-                                    <Link href="/upload" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                                        Upload
-                                    </Link>
-                                    <Link href="/favorites" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                                        Favorites
-                                    </Link>
-                                </>
-                            )}
+                        </div>
+
+                        {/* Search Bar */}
+                        <div className="flex-1 max-w-md relative">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Search wallpapers..."
+                                className="w-full pl-12 pr-4 py-2.5 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-200 placeholder-gray-400 text-sm"
+                            />
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                <kbd className="hidden sm:inline-flex items-center px-2 py-1 text-xs text-gray-500 bg-gray-100 rounded">
+                                    ⌘K
+                                </kbd>
+                            </div>
                         </div>
                     </div>
 
-                    {/* User Menu */}
-                    <div className="hidden md:block">
-                        <div className="ml-4 flex items-center md:ml-6">
-                            {user ? (
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                                        className="flex items-center space-x-2 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                    >
-                                        <Avatar user={user} />
-                                        <span className="text-gray-700">{user.name}</span>
-                                    </button>
+                    {/* Upload + Profile Menu */}
+                    <div className="hidden md:flex items-center space-x-4">
+                        {user && (
+                            <Link
+                                href="/upload"
+                                className="px-4 py-2 text-sm text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-medium shadow-md hover:from-purple-700 hover:to-pink-700 transform hover:scale-105 transition duration-200"
+                            >
+                                📤 Upload
+                            </Link>
+                        )}
 
-                                    {isProfileMenuOpen && (
-                                        <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
-                                            <div className="py-1">
-                                                <Link href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setIsProfileMenuOpen(false)}>
-                                                    Profile
-                                                </Link>
-                                                <Link href="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setIsProfileMenuOpen(false)}>
-                                                    Settings
-                                                </Link>
-                                                <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                                    Sign out
-                                                </button>
+                        {user ? (
+                            <div className="relative">
+                                <button
+                                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                                    className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100 transition-all"
+                                >
+                                    <div className="relative w-10 h-10">
+                                        <Avatar user={user} />
+                                        <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+                                    </div>
+                                </button>
+
+                                {isProfileMenuOpen && (
+                                    <div className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in slide-in-from-top-2 duration-200 z-50">
+                                        <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 border-b border-gray-100">
+                                            <div className="flex items-center space-x-3">
+                                                <Avatar user={user} />
+                                                <div>
+                                                    <p className="font-semibold text-gray-900">{user.name}</p>
+                                                    <p className="text-sm text-gray-500">{user.email}</p>
+                                                </div>
                                             </div>
                                         </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="flex space-x-2">
-                                    <Link href="/auth/login" className="text-sm text-gray-700 hover:text-gray-900 px-4 py-2">
-                                        Login
-                                    </Link>
-                                    <Link href="/auth/signup" className="text-sm text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-md">
-                                        Sign Up
-                                    </Link>
-                                </div>
-                            )}
-                        </div>
+                                        <div className="py-2">
+                                            {[
+                                                { href: '/profile', label: 'Profile', icon: '👤' },
+                                                { href: '/settings', label: 'Settings', icon: '⚙️' },
+                                                { href: '/favorites', label: 'Favorites', icon: '❤️' }
+                                            ].map((item) => (
+                                                <Link
+                                                    key={item.href}
+                                                    href={item.href}
+                                                    className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors"
+                                                    onClick={() => setIsProfileMenuOpen(false)}
+                                                >
+                                                    <span className="text-lg">{item.icon}</span>
+                                                    <span className="font-medium">{item.label}</span>
+                                                </Link>
+                                            ))}
+                                            <hr className="my-2" />
+                                            <button
+                                                onClick={handleLogout}
+                                                className="flex items-center space-x-3 w-full px-4 py-3 text-red-600 hover:bg-red-50 transition-colors"
+                                            >
+                                                <span className="text-lg">🚪</span>
+                                                <span className="font-medium">Sign out</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex items-center space-x-3">
+                                <Link 
+                                    href="/auth/login" 
+                                    className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium rounded-lg hover:bg-gray-50 transition-all duration-200"
+                                >
+                                    Sign In
+                                </Link>
+                                <Link 
+                                    href="/auth/signup" 
+                                    className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-pink-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+                                >
+                                    Get Started
+                                </Link>
+                            </div>
+                        )}
                     </div>
 
                     {/* Mobile menu button */}
                     <div className="md:hidden">
                         <button
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
-                            className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+                            className="inline-flex items-center justify-center p-2 rounded-lg text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                         >
-                            <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                            <svg className={`h-6 w-6 transition-transform duration-200 ${isMenuOpen ? 'rotate-90' : ''}`} stroke="currentColor" fill="none" viewBox="0 0 24 24">
                                 {isMenuOpen ? (
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                                 ) : (
@@ -119,48 +187,63 @@ const Navigation = () => {
                 </div>
             </div>
 
-            {/* Mobile menu */}
+            {/* Mobile Menu */}
             {isMenuOpen && (
-                <div className="md:hidden">
-                    <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
-                        <Link href="/" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900" onClick={() => setIsMenuOpen(false)}>
-                            Home
-                        </Link>
-                        <Link href="/wallpapers" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900" onClick={() => setIsMenuOpen(false)}>
-                            Browse
-                        </Link>
-                        {user ? (
+                <div className="md:hidden animate-in slide-in-from-top-2 duration-200">
+                    <div className="px-4 pt-4 pb-6 space-y-3 bg-white/95 backdrop-blur-xl border-t border-gray-200/50">
+                        <div className="relative mb-4">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Search wallpapers..."
+                                className="w-full pl-10 pr-4 py-3 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-200 placeholder-gray-400"
+                            />
+                        </div>
+
+                        {[
+                            { href: '/', label: 'Home', icon: '🏠' },
+                            ...(user ? [
+                                { href: '/upload', label: 'Upload', icon: '📤' },
+                                { href: '/favorites', label: 'Favorites', icon: '❤️' },
+                                { href: '/profile', label: 'Profile', icon: '👤' },
+                                { href: '/settings', label: 'Settings', icon: '⚙️' }
+                            ] : [
+                                { href: '/auth/login', label: 'Sign In', icon: '🔐' },
+                                { href: '/auth/signup', label: 'Get Started', icon: '✨', special: true }
+                            ])
+                        ].map((item) => (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
+                                    item.special 
+                                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' 
+                                        : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-gray-900'
+                                }`}
+                                onClick={() => setIsMenuOpen(false)}
+                            >
+                                <span className="text-lg">{item.icon}</span>
+                                <span>{item.label}</span>
+                            </Link>
+                        ))}
+
+                        {user && (
                             <>
-                                <Link href="/upload" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900" onClick={() => setIsMenuOpen(false)}>
-                                    Upload
-                                </Link>
-                                <Link href="/favorites" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900" onClick={() => setIsMenuOpen(false)}>
-                                    Favorites
-                                </Link>
-                                <Link href="/profile" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900" onClick={() => setIsMenuOpen(false)}>
-                                    Profile
-                                </Link>
-                                <Link href="/settings" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900" onClick={() => setIsMenuOpen(false)}>
-                                    Settings
-                                </Link>
+                                <hr className="my-4" />
                                 <button
                                     onClick={() => {
                                         handleLogout();
                                         setIsMenuOpen(false);
                                     }}
-                                    className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900"
+                                    className="flex items-center space-x-3 w-full px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition-colors font-medium"
                                 >
-                                    Sign out
+                                    <span className="text-lg">🚪</span>
+                                    <span>Sign out</span>
                                 </button>
-                            </>
-                        ) : (
-                            <>
-                                <Link href="/auth/login" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900" onClick={() => setIsMenuOpen(false)}>
-                                    Login
-                                </Link>
-                                <Link href="/auth/signup" className="block px-3 py-2 rounded-md text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700" onClick={() => setIsMenuOpen(false)}>
-                                    Sign Up
-                                </Link>
                             </>
                         )}
                     </div>

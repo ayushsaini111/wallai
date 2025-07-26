@@ -2,24 +2,27 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 const DebugAuth = () => {
     const { user, loading } = useAuth();
     const pathname = usePathname();
 
     // Get all cookies for debugging
-    const getCookies = () => {
-        if (typeof document !== 'undefined') {
-            return document.cookie.split(';').reduce((cookies, cookie) => {
-                const [name, value] = cookie.trim().split('=');
-                cookies[name] = value;
-                return cookies;
-            }, {});
-        }
-        return {};
-    };
-
-    const cookies = getCookies();
+    const [cookies, setCookies] = useState({});
+    useEffect(() => {
+        const getCookies = () => {
+            if (typeof document !== 'undefined') {
+                return document.cookie.split(';').reduce((cookies, cookie) => {
+                    const [name, value] = cookie.trim().split('=');
+                    cookies[name] = value;
+                    return cookies;
+                }, {});
+            }
+            return {};
+        };
+        setCookies(getCookies());
+    }, []);
 
     return (
         <div className="fixed bottom-4 right-4 bg-black bg-opacity-90 text-white p-4 rounded-lg text-xs max-w-sm z-50">
