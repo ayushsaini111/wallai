@@ -6,10 +6,92 @@ class UserService {
     // Get current user session
     async getCurrentUser() {
         try {
-            return await account.get();
+            const user = await account.get();
+            const stats = await this.getUserStats(user.$id);
+            const profile = await this.getUserProfile(user.$id);
+            return {
+                ...user,
+                ...stats,
+                ...profile
+            };
         } catch (error) {
             console.error("UserService :: getCurrentUser :: error", error);
             throw error;
+        }
+    }
+
+    // Get user statistics
+    async getUserStats(userId) {
+        try {
+            const [likes, followers, downloads, uploads] = await Promise.all([
+                databases.listDocuments(
+                    config.databaseId,
+                    'likes',
+                    [Query.equal('userId', userId)]
+                ),
+                databases.listDocuments(
+                    config.databaseId,
+                    'followers',
+                    [Query.equal('followedId', userId)]
+                ),
+                databases.listDocuments(
+                    config.databaseId,
+                    'downloads',
+                    [Query.equal('uploaderId', userId)]
+                ),
+                storage.listFiles(
+                    config.bucketId,
+                    [Query.equal('uploaderId', userId)]
+                )
+            ]);
+
+            return {
+                totalLikes: likes.total,
+                followers: followers.total,
+                downloads: downloads.total,
+                uploads: uploads.total
+            };
+        } catch (error) {
+            console.error("UserService :: getUserStats :: error", error);
+            return {
+                totalLikes: 0,
+                followers: 0,
+                downloads: 0,
+                uploads: 0
+            };
+        }
+    }
+
+    // Get user profile details
+    async getUserProfile(userId) {
+        try {
+            const prefs = await account.getPrefs();
+            return {
+                name: prefs.name || 'Anonymous User',
+                bio: prefs.bio || '',
+                location: prefs.location || '',
+                website: prefs.website || '',
+                social: prefs.social || {
+                    twitter: '',
+                    instagram: '',
+                    github: ''
+                },
+                profileImage: prefs.profileImage || '/avatar.png'
+            };
+        } catch (error) {
+            console.error("UserService :: getUserProfile :: error", error);
+            return {
+                name: 'Anonymous User',
+                bio: '',
+                location: '',
+                website: '',
+                social: {
+                    twitter: '',
+                    instagram: '',
+                    github: ''
+                },
+                profileImage: '/avatar.png'
+            };
         }
     }
 

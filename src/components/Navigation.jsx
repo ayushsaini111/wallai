@@ -10,7 +10,7 @@ import { deleteCookie } from 'cookies-next';
 
 const Navigation = () => {
     const router = useRouter();
-    const { user, setUser } = useAuth();
+    const { user, setUser, loading } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
@@ -36,24 +36,23 @@ const Navigation = () => {
     };
 
     return (
-        <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-            scrolled 
-                ? 'bg-white/90 backdrop-blur-xl shadow-lg border-b border-gray-200/50' 
+        <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled
+                ? 'bg-white/90 backdrop-blur-xl shadow-lg border-b border-gray-200/50'
                 : 'bg-transparent'
-        }`}>
+            }`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-20">
                     {/* Logo */}
                     <div className="flex-shrink-0">
                         <Link href="/" className="group flex items-center space-x-3">
                             <div className="relative">
-                                <div className="w-10 h-10 bg-gradient-to-br from-purple-600 via-pink-600 to-blue-600 rounded-xl rotate-3 group-hover:rotate-6 transition-transform duration-300"></div>
-                                <div className="absolute inset-0 w-10 h-10 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-xl -rotate-3 group-hover:-rotate-6 transition-transform duration-300"></div>
+                                <div className="w-10 h-10 bg-gradient-to-br from-orange-600 via-pink-600 to-blue-600 rounded-xl rotate-3 group-hover:rotate-6 transition-transform duration-300"></div>
+                                <div className="absolute inset-0 w-10 h-10 bg-gradient-to-br from-orange-600  to-pink-700 rounded-xl -rotate-3 group-hover:-rotate-6 transition-transform duration-300"></div>
                                 <div className="absolute inset-0 flex items-center justify-center">
                                     <span className="text-white font-bold text-lg">W</span>
                                 </div>
                             </div>
-                            <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                            <span className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-pink-600 bg-clip-text text-transparent">
                                 WallpaperHub
                             </span>
                         </Link>
@@ -62,31 +61,10 @@ const Navigation = () => {
                     {/* Desktop Navigation */}
                     <div className="hidden md:flex items-center flex-1 max-w-2xl mx-8">
                         <div className="flex items-center space-x-1 mr-6">
-                            <Link href="/" className="relative px-3 py-2 text-gray-700 hover:text-gray-900 font-medium transition-all duration-200 group flex items-center space-x-2">
-                                <span className="text-sm">🏠</span>
-                                <span className="relative z-10">Home</span>
-                                <div className="absolute inset-0 bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg opacity-0 group-hover:opacity-100 transform scale-95 group-hover:scale-100 transition-all duration-200"></div>
-                            </Link>
+                            
                         </div>
 
-                        {/* Search Bar */}
-                        <div className="flex-1 max-w-md relative">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </div>
-                            <input
-                                type="text"
-                                placeholder="Search wallpapers..."
-                                className="w-full pl-12 pr-4 py-2.5 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-200 placeholder-gray-400 text-sm"
-                            />
-                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                                <kbd className="hidden sm:inline-flex items-center px-2 py-1 text-xs text-gray-500 bg-gray-100 rounded">
-                                    ⌘K
-                                </kbd>
-                            </div>
-                        </div>
+                       
                     </div>
 
                     {/* Upload + Profile Menu */}
@@ -94,13 +72,17 @@ const Navigation = () => {
                         {user && (
                             <Link
                                 href="/upload"
-                                className="px-4 py-2 text-sm text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-medium shadow-md hover:from-purple-700 hover:to-pink-700 transform hover:scale-105 transition duration-200"
+                                className="px-4 py-2 text-sm text-white bg-gradient-to-r from-green-600 to-blue-600 rounded-xl font-medium shadow-md hover:from-purple-700 hover:to-pink-700 transform hover:scale-105 transition duration-200"
                             >
-                                📤 Upload
+                            Upload
                             </Link>
                         )}
 
-                        {user ? (
+                        {loading ? (
+                            <div className="animate-pulse flex items-center space-x-3">
+                                <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                            </div>
+                        ) : user ? (
                             <div className="relative">
                                 <button
                                     onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
@@ -153,14 +135,14 @@ const Navigation = () => {
                             </div>
                         ) : (
                             <div className="flex items-center space-x-3">
-                                <Link 
-                                    href="/auth/login" 
+                                <Link
+                                    href="/auth/login"
                                     className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium rounded-lg hover:bg-gray-50 transition-all duration-200"
                                 >
                                     Sign In
                                 </Link>
-                                <Link 
-                                    href="/auth/signup" 
+                                <Link
+                                    href="/auth/signup"
                                     className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-pink-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
                                 >
                                     Get Started
@@ -204,32 +186,72 @@ const Navigation = () => {
                             />
                         </div>
 
-                        {[
-                            { href: '/', label: 'Home', icon: '🏠' },
-                            ...(user ? [
-                                { href: '/upload', label: 'Upload', icon: '📤' },
-                                { href: '/favorites', label: 'Favorites', icon: '❤️' },
-                                { href: '/profile', label: 'Profile', icon: '👤' },
-                                { href: '/settings', label: 'Settings', icon: '⚙️' }
-                            ] : [
-                                { href: '/auth/login', label: 'Sign In', icon: '🔐' },
-                                { href: '/auth/signup', label: 'Get Started', icon: '✨', special: true }
-                            ])
-                        ].map((item) => (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
-                                    item.special 
-                                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' 
-                                        : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-gray-900'
-                                }`}
-                                onClick={() => setIsMenuOpen(false)}
-                            >
-                                <span className="text-lg">{item.icon}</span>
-                                <span>{item.label}</span>
-                            </Link>
-                        ))}
+
+                        {/* Always show Home */}
+                        <Link
+                            href="/"
+                            className="flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-gray-700 hover:bg-purple-50 hover:text-gray-900 transition-all duration-200"
+                            onClick={() => setIsMenuOpen(false)}
+                        >
+                            <span className="text-lg">🏠</span>
+                            <span>Home</span>
+                        </Link>
+
+                        {user ? (
+                            <>
+                                {/* Authenticated menu */}
+                                {[
+                                    { href: '/upload', label: 'Upload', icon: '📤' },
+                                    { href: '/favorites', label: 'Favorites', icon: '❤️' },
+                                    { href: '/profile', label: 'Profile', icon: '👤' },
+                                    { href: '/settings', label: 'Settings', icon: '⚙️' }
+                                ].map((item) => (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        className="flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-gray-700 hover:bg-purple-50 hover:text-gray-900 transition-all duration-200"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        <span className="text-lg">{item.icon}</span>
+                                        <span>{item.label}</span>
+                                    </Link>
+                                ))}
+
+                                <hr className="my-4" />
+                                <button
+                                    onClick={() => {
+                                        handleLogout();
+                                        setIsMenuOpen(false);
+                                    }}
+                                    className="flex items-center space-x-3 w-full px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition-colors font-medium"
+                                >
+                                    <span className="text-lg">🚪</span>
+                                    <span>Sign out</span>
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                {/* Unauthenticated menu */}
+                                <Link
+                                    href="/auth/login"
+                                    className="flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-gray-700 hover:bg-purple-50 hover:text-gray-900 transition-all duration-200"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    <span className="text-lg">🔐</span>
+                                    <span>Sign In</span>
+                                </Link>
+                                <Link
+                                    href="/auth/signup"
+                                    className="flex items-center space-x-3 px-4 py-3 rounded-xl font-medium bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    <span className="text-lg">✨</span>
+                                    <span>Get Started</span>
+                                </Link>
+                            </>
+                        )}
+
+
 
                         {user && (
                             <>

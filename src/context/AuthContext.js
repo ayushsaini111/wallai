@@ -1,8 +1,16 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
+import authService from '@/lib/appwrite/auth.service';
 
-const AuthContext = createContext({});
+const AuthContext = createContext({
+    user: null,
+    loading: true,
+    loginWithGoogle: async () => {},
+    logout: async () => {},
+    setUser: () => {},
+    updateUser: () => {}
+});
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
@@ -16,44 +24,88 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Simulate checking auth on mount
+    // Check auth status on mount and when localStorage changes
     useEffect(() => {
         const checkAuth = async () => {
             setLoading(true);
-            
-            // For now, just set loading to false after a brief delay
-            // Later we'll add real Appwrite auth checking
-            setTimeout(() => {
-                console.log('Auth check completed - no user found');
+            try {
+                // First check localStorage
+                const storedUser = localStorage.getItem('user');
+                
+                // If we have a stored user, verify it's still valid
+                if (storedUser) {
+                    const parsedUser = JSON.parse(storedUser);
+                    // You can add additional validation here if needed
+                    setUser(parsedUser);
+                } else {
+                    // If no stored user, try to get current session
+                    try {
+                        const session = await authService.getCurrentUser();
+                        if (session) {
+                            setUser(session);
+                            localStorage.setItem('user', JSON.stringify(session));
+                        } else {
+                            setUser(null);
+                            localStorage.removeItem('user');
+                        }
+                    } catch (sessionError) {
+                        console.error('Session check failed:', sessionError);
+                        setUser(null);
+                        localStorage.removeItem('user');
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking auth:', error);
                 setUser(null);
+                localStorage.removeItem('user');
+            } finally {
                 setLoading(false);
-            }, 1000);
+            }
         };
 
+        // Listen for storage events to sync across tabs
+        const handleStorageChange = (e) => {
+            if (e.key === 'user') {
+                checkAuth();
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
         checkAuth();
+
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+        };
     }, []);
 
     const loginWithGoogle = async () => {
         try {
             setLoading(true);
-            console.log('Google login initiated');
+            // Add your actual Google login logic here
+            const userData = {
+                id: '123',
+                name: 'User Name',
+                email: 'user@example.com',
+                // Add other user data
+            };
             
-            // For now, just simulate login
-            setTimeout(() => {
-                console.log('Google login completed');
-                setLoading(false);
-            }, 2000);
+            // Store in localStorage
+            localStorage.setItem('user', JSON.stringify(userData));
+            setUser(userData);
+            return { success: true };
             
         } catch (error) {
             console.error('Google login failed:', error);
-            setLoading(false);
             return { success: false, error: error.message };
+        } finally {
+            setLoading(false);
         }
     };
 
     const logout = async () => {
         try {
             setLoading(true);
+            localStorage.removeItem('user');
             setUser(null);
             console.log('User logged out');
             return { success: true };

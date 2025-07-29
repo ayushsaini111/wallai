@@ -187,14 +187,110 @@ class WallpaperService {
         return true;
     }
 
-    // Download wallpaper (stub)
-    download(imageUrl, title) {
-        const link = document.createElement('a');
-        link.href = imageUrl;
-        link.download = title || 'wallpaper';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    // Download a single wallpaper with progress tracking
+    async download(imageUrl, title) {
+        try {
+            const response = await fetch(imageUrl);
+            if (!response.ok) throw new Error('Download failed');
+
+            const blob = await response.blob();
+            const fileName = `${title || 'wallpaper'}.${this.getFileExtension(imageUrl)}`;
+
+            // Create download link
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = fileName;
+
+            // Trigger download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Cleanup
+            window.URL.revokeObjectURL(downloadUrl);
+
+            // Record download in database
+            await this.recordDownload(imageUrl, fileName);
+
+            return { success: true, fileName };
+        } catch (error) {
+            console.error('Download failed:', error);
+            throw new Error('Failed to download wallpaper');
+        }
+    }
+
+    // Download multiple wallpapers
+    async downloadMultiple(files) {
+        try {
+            const downloads = files.map(({ url, filename }) => 
+                this.download(url, filename)
+            );
+            
+            const results = await Promise.allSettled(downloads);
+            
+            // Check results
+            const successful = results.filter(r => r.status === 'fulfilled').length;
+            const failed = results.filter(r => r.status === 'rejected').length;
+            
+            return {
+                success: failed === 0,
+                summary: `Successfully downloaded ${successful} files${failed > 0 ? `, ${failed} failed` : ''}`
+            };
+        } catch (error) {
+            console.error('Batch download failed:', error);
+            throw new Error('Failed to download wallpapers');
+        }
+    }
+
+    // Get user's download history
+    async getUserDownloads(userId) {
+        try {
+            return await databases.listDocuments(
+                config.databaseId,
+                config.collections.downloads,
+                [
+                    Query.equal('userId', userId),
+                    Query.orderDesc('downloadDate'),
+                    Query.limit(50)
+                ]
+            );
+        } catch (error) {
+            console.error("WallpaperService :: getUserDownloads :: error", error);
+            throw error;
+        }
+    }
+
+    // Record download in database
+    async recordDownload(imageUrl, fileName) {
+        try {
+            return await databases.createDocument(
+                config.databaseId,
+                config.collections.downloads,
+                ID.unique(),
+                {
+                    userId: this.getCurrentUserId(),
+                    imageUrl,
+                    fileName,
+                    downloadDate: new Date().toISOString()
+                }
+            );
+        } catch (error) {
+            console.error("WallpaperService :: recordDownload :: error", error);
+            // Don't throw error here as it's not critical for the download functionality
+        }
+    }
+
+    // Helper method to get file extension from URL
+    getFileExtension(url) {
+        const extension = url.split('.').pop().toLowerCase();
+        return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension) ? extension : 'jpg';
+    }
+
+    // Helper method to get current user ID
+    getCurrentUserId() {
+        // You should implement this based on your auth system
+        return localStorage.getItem('userId') || 'anonymous';
     }
 }
 

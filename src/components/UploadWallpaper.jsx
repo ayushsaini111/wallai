@@ -14,6 +14,24 @@ const UploadWallpaper = () => {
     const [uploadResults, setUploadResults] = useState([]);
     const fileInputRef = useRef(null);
 
+    // Predefined categories
+    const categories = [
+        'Nature',
+        'Abstract',
+        'Technology',
+        'Animals',
+        'Architecture',
+        'Space',
+        'Minimalist',
+        'Gaming',
+        'Anime',
+        'Cars',
+        'Sports',
+        'Art',
+        'Photography',
+        'Other'
+    ];
+
     // Handle drag events
     const handleDrag = (e) => {
         e.preventDefault();
@@ -48,7 +66,7 @@ const UploadWallpaper = () => {
         const validFiles = Array.from(files).filter(file => {
             // Check if file is an image
             if (!file.type.startsWith('image/')) {
-                alert(`${file.name} is not an image file`);
+                alert(`${file.name} is not a valid image file`);
                 return false;
             }
             // Check file size (max 50MB for wallpapers)
@@ -66,11 +84,33 @@ const UploadWallpaper = () => {
                 preview: URL.createObjectURL(file),
                 name: file.name,
                 size: file.size,
-                status: 'pending'
+                status: 'pending',
+                metadata: {
+                    title: file.name.split('.')[0], // Remove extension for default title
+                    description: '',
+                    category: 'Other'
+                }
             }));
             
-            setSelectedFiles(prev => [...prev, ...filesWithPreview]);
+            setSelectedFiles(prev => [...filesWithPreview, ...prev]);
         }
+    };
+
+    // Update file metadata
+    const updateFileMetadata = (fileId, field, value) => {
+        setSelectedFiles(prev => 
+            prev.map(f => 
+                f.id === fileId 
+                    ? { 
+                        ...f, 
+                        metadata: { 
+                            ...f.metadata, 
+                            [field]: value 
+                        } 
+                    }
+                    : f
+            )
+        );
     };
 
     // Remove file from selection
@@ -93,9 +133,45 @@ const UploadWallpaper = () => {
         });
     };
 
+    // Validate file data before upload
+    const validateFileData = (fileData) => {
+        const { title, description, category } = fileData.metadata;
+        
+        if (!title.trim()) {
+            return 'Title is required';
+        }
+        if (title.trim().length < 3) {
+            return 'Title must be at least 3 characters long';
+        }
+        if (description.trim().length > 500) {
+            return 'Description must be less than 500 characters';
+        }
+        if (!category) {
+            return 'Category is required';
+        }
+        
+        return null;
+    };
+
     // Upload files
     const uploadFiles = async () => {
         if (selectedFiles.length === 0) return;
+
+        // Validate all files first
+        const validationErrors = [];
+        selectedFiles.forEach(fileData => {
+            if (fileData.status === 'pending') {
+                const error = validateFileData(fileData);
+                if (error) {
+                    validationErrors.push(`${fileData.name}: ${error}`);
+                }
+            }
+        });
+
+        if (validationErrors.length > 0) {
+            alert('Please fix the following errors:\n\n' + validationErrors.join('\n'));
+            return;
+        }
 
         setUploading(true);
         const results = [];
@@ -119,8 +195,11 @@ const UploadWallpaper = () => {
                     )
                 );
 
-                // Upload to Appwrite Storage
-                const uploadedFile = await wallpaperService.uploadWallpaper(fileData.file);
+                // Upload to Appwrite Storage with metadata
+                const uploadedFile = await wallpaperService.uploadWallpaper(
+                    fileData.file, 
+                    fileData.metadata
+                );
                 
                 // Update progress to completion
                 setUploadProgress(prev => ({
@@ -254,7 +333,7 @@ const UploadWallpaper = () => {
     return (
         <div className="min-h-screen bg-gray-50">
             <div className="container mx-auto px-4 py-8">
-                <div className="max-w-4xl mx-auto">
+                <div className="max-w-6xl mx-auto">
                     {/* Header */}
                     <div className="text-center mb-8">
                         <h1 className="text-4xl font-bold text-gray-900 mb-2">Upload Wallpapers</h1>
@@ -355,17 +434,40 @@ const UploadWallpaper = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 {selectedFiles.map((fileData) => (
-                                    <div key={fileData.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
-                                        <div className="aspect-video relative bg-gray-100">
+                                    <div key={fileData.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-all duration-300">
+                                        {/* Image Preview */}
+                                        <div className="aspect-video relative bg-gray-100 group">
                                             <Image
                                                 src={fileData.preview}
                                                 alt={fileData.name}
                                                 fill
-                                                className="object-cover"
-                                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                                                sizes="(max-width: 1024px) 100vw, 50vw"
                                             />
+                                            {/* Download overlay for completed uploads */}
+                                            {fileData.status === 'completed' && (
+                                                <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                                    <button
+                                                        onClick={() => {
+                                                            const downloadUrl = wallpaperService.getFilePreview(fileData.uploadedId);
+                                                            const link = document.createElement('a');
+                                                            link.href = downloadUrl;
+                                                            link.download = fileData.name;
+                                                            document.body.appendChild(link);
+                                                            link.click();
+                                                            document.body.removeChild(link);
+                                                        }}
+                                                        className="bg-white text-gray-900 px-4 py-2 rounded-lg font-medium shadow-lg transform transition-all duration-300 hover:scale-105 flex items-center gap-2"
+                                                    >
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                        </svg>
+                                                        Download
+                                                    </button>
+                                                </div>
+                                            )}
                                             
                                             {/* Status overlay */}
                                             {fileData.status === 'uploading' && (
@@ -377,42 +479,107 @@ const UploadWallpaper = () => {
                                                 </div>
                                             )}
 
-                                            {/* Remove button */}
-                                            <button
-                                                onClick={() => removeFile(fileData.id)}
-                                                disabled={uploading}
-                                                className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 transition-colors disabled:opacity-50"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
+                                            {/* Status badge */}
+                                            <div className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(fileData.status)} bg-white bg-opacity-90 flex items-center gap-1 shadow-sm`}>
+                                                {getStatusIcon(fileData.status)}
+                                                {fileData.status.charAt(0).toUpperCase() + fileData.status.slice(1)}
+                                            </div>
                                         </div>
                                         
-                                        <div className="p-4">
-                                            <h3 className="font-medium text-sm text-gray-900 truncate mb-2">
-                                                {fileData.name}
-                                            </h3>
-                                            
-                                            <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                                        {/* File Info and Form */}
+                                        <div className="p-6">
+                                            <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+                                                <span className="font-medium">{fileData.name}</span>
                                                 <span>{formatFileSize(fileData.size)}</span>
-                                                <span className={`flex items-center gap-1 font-medium ${getStatusColor(fileData.status)}`}>
-                                                    {getStatusIcon(fileData.status)}
-                                                    {fileData.status.charAt(0).toUpperCase() + fileData.status.slice(1)}
-                                                </span>
                                             </div>
-                                            
+
+                                            {/* Metadata Form */}
+                                            <div className="space-y-4">
+                                                {/* Title */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        Title <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={fileData.metadata.title}
+                                                        onChange={(e) => updateFileMetadata(fileData.id, 'title', e.target.value)}
+                                                        disabled={uploading || fileData.status === 'completed'}
+                                                        placeholder="Enter wallpaper title"
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
+                                                        maxLength={100}
+                                                    />
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        {fileData.metadata.title.length}/100 characters
+                                                    </p>
+                                                </div>
+
+                                                {/* Description */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        Description
+                                                    </label>
+                                                    <textarea
+                                                        value={fileData.metadata.description}
+                                                        onChange={(e) => updateFileMetadata(fileData.id, 'description', e.target.value)}
+                                                        disabled={uploading || fileData.status === 'completed'}
+                                                        placeholder="Describe your wallpaper (optional)"
+                                                        rows={3}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed text-sm resize-none"
+                                                        maxLength={500}
+                                                    />
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        {fileData.metadata.description.length}/500 characters
+                                                    </p>
+                                                </div>
+
+                                                {/* Category */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        Category <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <select
+                                                        value={fileData.metadata.category}
+                                                        onChange={(e) => updateFileMetadata(fileData.id, 'category', e.target.value)}
+                                                        disabled={uploading || fileData.status === 'completed'}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
+                                                    >
+                                                        {categories.map(category => (
+                                                            <option key={category} value={category}>
+                                                                {category}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+
+                                                {/* Individual Cancel Button */}
+                                                <div className="pt-2">
+                                                    <button
+                                                        onClick={() => removeFile(fileData.id)}
+                                                        disabled={uploading}
+                                                        className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md font-medium transition-colors disabled:bg-gray-50 disabled:cursor-not-allowed text-sm inline-flex items-center justify-center gap-2"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                        Remove this file
+                                                    </button>
+                                                </div>
+                                            </div>
+
                                             {/* Progress bar for uploading files */}
                                             {fileData.status === 'uploading' && (
-                                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                                    <div className="bg-blue-500 h-2 rounded-full transition-all duration-300 animate-pulse w-full"></div>
+                                                <div className="mt-4">
+                                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                                        <div className="bg-blue-500 h-2 rounded-full transition-all duration-300 animate-pulse w-full"></div>
+                                                    </div>
                                                 </div>
                                             )}
 
                                             {/* Success state */}
                                             {fileData.status === 'completed' && (
-                                                <div className="text-center">
-                                                    <div className="inline-flex items-center gap-1 text-green-600 text-sm font-medium">
+                                                <div className="mt-4 text-center">
+                                                    <div className="inline-flex items-center gap-2 text-green-600 text-sm font-medium bg-green-50 px-4 py-2 rounded-lg">
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                                         </svg>
@@ -423,8 +590,8 @@ const UploadWallpaper = () => {
 
                                             {/* Error state */}
                                             {fileData.status === 'error' && (
-                                                <div className="text-center">
-                                                    <div className="inline-flex items-center gap-1 text-red-600 text-sm font-medium">
+                                                <div className="mt-4 text-center">
+                                                    <div className="inline-flex items-center gap-2 text-red-600 text-sm font-medium bg-red-50 px-4 py-2 rounded-lg">
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                         </svg>
@@ -509,35 +676,56 @@ const UploadWallpaper = () => {
                             <span className="text-xl">💡</span>
                             Upload Tips for Best Results
                         </h3>
-                        <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-600">
-                            <ul className="space-y-2">
-                                <li className="flex items-start gap-2">
-                                    <span className="text-green-500 mt-0.5">•</span>
-                                    Use high-resolution images (1920×1080 or higher)
-                                </li>
-                                <li className="flex items-start gap-2">
-                                    <span className="text-green-500 mt-0.5">•</span>
-                                    Drag and drop multiple files at once
-                                </li>
-                                <li className="flex items-start gap-2">
-                                    <span className="text-green-500 mt-0.5">•</span>
-                                    JPG files are smaller and upload faster
-                                </li>
-                            </ul>
-                            <ul className="space-y-2">
-                                <li className="flex items-start gap-2">
-                                    <span className="text-green-500 mt-0.5">•</span>
-                                    PNG files preserve transparency
-                                </li>
-                                <li className="flex items-start gap-2">
-                                    <span className="text-green-500 mt-0.5">•</span>
-                                    Preview your files before uploading
-                                </li>
-                                <li className="flex items-start gap-2">
-                                    <span className="text-green-500 mt-0.5">•</span>
-                                    Maximum file size is 50MB per file
-                                </li>
-                            </ul>
+                        <div className="grid md:grid-cols-2 gap-6 text-sm text-gray-600">
+                            <div>
+                                <h4 className="font-medium text-gray-900 mb-2">Image Quality</h4>
+                                <ul className="space-y-2">
+                                    <li className="flex items-start gap-2">
+                                        <span className="text-green-500 mt-0.5">•</span>
+                                        Use high-resolution images (1920×1080 or higher)
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <span className="text-green-500 mt-0.5">•</span>
+                                        JPG files are smaller and upload faster
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <span className="text-green-500 mt-0.5">•</span>
+                                        PNG files preserve transparency
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-medium text-gray-900 mb-2">Upload Process</h4>
+                                <ul className="space-y-2">
+                                    <li className="flex items-start gap-2">
+                                        <span className="text-green-500 mt-0.5">•</span>
+                                        Fill out title and category for each image
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <span className="text-green-500 mt-0.5">•</span>
+                                        Add descriptions to help others find your wallpapers
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <span className="text-green-500 mt-0.5">•</span>
+                                        Drag and drop multiple files at once
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                            <div className="flex items-start gap-2">
+                                <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div className="text-sm">
+                                    <p className="font-medium text-blue-900 mb-1">Important Note</p>
+                                    <p className="text-blue-800">
+                                        Make sure to fill out all required fields (marked with *) before uploading. 
+                                        Good titles and proper categorization help other users discover your wallpapers!
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
